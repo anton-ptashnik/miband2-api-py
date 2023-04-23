@@ -22,9 +22,10 @@ class Band2:
 
     async def __aenter__(self):
         await self.device.__aenter__()
+        return self
 
-    async def __aexit__(self):
-        await self.device.__aexit__()
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.device.__aexit__(exc_type, exc_val, exc_tb)
 
     async def ring(self, ring: NotificationType):
         await self.device.write_gatt_char("00002a06-0000-1000-8000-00805f9b34fb", bytes([ring.value]))
