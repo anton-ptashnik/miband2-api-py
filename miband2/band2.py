@@ -44,14 +44,14 @@ class Band2:
         level = data[1]
         status = 'normal' if data[2] == 0 else "charging"
 
-        last_charge = _unpack_datetime(data[11:18])
-        last_off = _unpack_datetime(data[3:10])
+        last_charge = struct.unpack("hbbxxx", data[11:18])
+        last_off = struct.unpack("hbbxxx", data[3:10])
 
         return {
             'level': int(level),
             'status': status,
-            'last_off': last_off,
-            'last_charge': last_charge
+            'last_off': datetime(*last_off),
+            'last_charge': datetime(*last_charge)
         }
     
     async def request_heartbeat(self, callback):
