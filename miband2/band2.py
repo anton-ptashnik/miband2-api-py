@@ -2,7 +2,7 @@ import bleak
 import struct
 import enum
 from datetime import datetime
-import asyncio
+from . import authsession
 
 class NotificationType(enum.Enum):
     SINGLE = 1
@@ -90,15 +90,9 @@ class Band2:
     #     return await self.device.write_gatt_char("00000003-0000-3512-2118-0009af100700", 0x0d, response=True)
     
     async def auth(self, key):
-        from . import authsession
-        from queue import Queue
-        q = Queue()
-        def on_auth(res):
-            q.put(res)
-        authsession.auth(self.device.address, key, on_auth)
-        await asyncio.to_thread(lambda: q.get(timeout=22))
-
-
+        s = authsession.Session(self.device, key)
+        return await s.start()
+    
 def _unpack_datetime(raw_data):
     data = struct.unpack('hbbbbbbxxx', raw_data)
     return datetime(*data)
