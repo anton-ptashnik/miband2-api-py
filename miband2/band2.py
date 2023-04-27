@@ -64,27 +64,43 @@ class Band2:
         await self.device.write_gatt_char("00002a39-0000-1000-8000-00805f9b34fb", b'\x15\x02\x00')
         await self.device.write_gatt_char("00002a39-0000-1000-8000-00805f9b34fb", b'\x15\x02\x01')
 
-    # todo sniff a call with different 
     async def set_onetime_alarm(self, slot, h, m):
-        # byte[] alarmMessage = new byte[]{
-        #         (byte) 0x2, // TODO what is this?
-        #         (byte) (actionMask | alarm.getPosition()), // action mask + alarm slot
-        #         (byte) calendar.get(Calendar.HOUR_OF_DAY),
-        #         (byte) calendar.get(Calendar.MINUTE),
-        #         (byte) daysMask,
-        # };
-        # return new Alarm(-1, -1, index, true, smartWakeup, snooze, Alarm.ALARM_ONCE, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false, GBApplication.getContext().getString(R.string.quick_alarm), GBApplication.getContext().getString(R.string.quick_alarm_description));
-        actionMask = 0x80 | 0x40
-        daysMask = 128
+        """
+        Setup an alarm that rings only once and gets autoremoved on finish
 
-        data = bytes([2, actionMask | slot, h, m, daysMask])
-        await self.device.write_gatt_char("00000003-0000-3512-2118-0009af100700", data)
+        Params:
+        slot: slot number for an alarm, range 0-5
+        h,m: hour and mnutes in 24 time format
+        """
+        alarm_on_action_mask = 0x80 | 0x40
+        only_once_days_mask = 128
+
+        await self._setup_alarm(slot, alarm_on_action_mask, (h,m), only_once_days_mask)
+
+    async def set_regular_alarm(self, slot, h,m, days):
+        """
+        Setup a regular alarm that will repeat on specified week days
+
+        Params:
+        slot: slot number for an alarm, range 0-5
+        h,m: hour and mnutes in 24 time format
+        days: a list of day constants from `calendar` module. Like [calendar.SUNDAY, calendar.MONDAY]
+        """
+        alarm_on_action_mask = 0x80 | 0x40
+        days_mask = _days_to_bitmask(days)
+
+        await self._setup_alarm(slot, alarm_on_action_mask, (h,m), days_mask)
 
     async def unset_alarm(self, slot):
-        daysMask = 0
+        alarm_off_action_mask = 0
         h = m = 0
+        days_mask = 0
 
-        data = bytes([0x2, slot, h, m, daysMask])
+        await self._setup_alarm(slot, alarm_off_action_mask, (h,m), days_mask)
+
+    async def _setup_alarm(self, slot, action_mask, hrs_mins_tuple, days_mask):
+        h, m = hrs_mins_tuple
+        data = bytes([2, action_mask | slot, h, m, days_mask])
         await self.device.write_gatt_char("00000003-0000-3512-2118-0009af100700", data)
 
     # async def get_alarms(self):
@@ -101,3 +117,9 @@ def _unpack_datetime(raw_data):
 def _pack_datetime(datetime_obj):
     dt = datetime_obj
     return struct.pack('hbbbbbbxxx', dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.weekday())
+
+def _days_to_bitmask(days):
+    mask = 0
+    for d in days:
+        mask |= 1 << d
+    return mask
