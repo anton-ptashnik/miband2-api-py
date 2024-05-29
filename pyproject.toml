@@ -12,3 +12,7 @@ dependencies = [
     "bleak==0.20.1",
     "pyaes==1.6.1",
 ]
+
+[project.urls]
+Documentation = "https://github.com/anton-ptashnik/miband2-api-py"
+Source = "https://github.com/anton-ptashnik/miband2-api-py"
